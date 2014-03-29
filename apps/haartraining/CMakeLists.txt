@@ -40,6 +40,25 @@ set_target_properties(opencv_haartraining_engine PROPERTIES
                      )
 
 # -----------------------------------------------------------
+#  mergevec
+# -----------------------------------------------------------
+
+add_executable(opencv_mergevec mergevec.cpp)
+set_target_properties(opencv_mergevec PROPERTIES
+                      DEBUG_POSTFIX "${OPENCV_DEBUG_POSTFIX}"
+                      OUTPUT_NAME "opencv_mergevec")
+
+# -----------------------------------------------------------
+#  vec2img
+# -----------------------------------------------------------
+
+add_executable(opencv_vec2img vec2img.cpp)
+set_target_properties(opencv_vec2img PROPERTIES
+                      DEBUG_POSTFIX "${OPENCV_DEBUG_POSTFIX}"
+                      OUTPUT_NAME "opencv_vec2img")
+
+
+# -----------------------------------------------------------
 #  haartraining
 # -----------------------------------------------------------
 
@@ -74,11 +93,15 @@ if(INSTALL_CREATE_DISTRIB)
     install(TARGETS opencv_haartraining RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} CONFIGURATIONS Release COMPONENT dev)
     install(TARGETS opencv_createsamples RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} CONFIGURATIONS Release COMPONENT dev)
     install(TARGETS opencv_performance RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} CONFIGURATIONS Release COMPONENT dev)
+    install(TARGETS opencv_mergevec RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} CONFIGURATIONS Release COMPONENT dev)
+    install(TARGETS opencv_vec2img RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} CONFIGURATIONS Release COMPONENT dev)
   endif()
 else()
   install(TARGETS opencv_haartraining RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} COMPONENT dev)
   install(TARGETS opencv_createsamples RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} COMPONENT dev)
   install(TARGETS opencv_performance RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} COMPONENT dev)
+  install(TARGETS opencv_mergevec RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} COMPONENT dev)
+  install(TARGETS opencv_vec2img RUNTIME DESTINATION ${OPENCV_BIN_INSTALL_PATH} COMPONENT dev)
 endif()
 
 if(ENABLE_SOLUTION_FOLDERS)
@@ -86,4 +109,6 @@ if(ENABLE_SOLUTION_FOLDERS)
   set_target_properties(opencv_createsamples PROPERTIES FOLDER "applications")
   set_target_properties(opencv_haartraining PROPERTIES FOLDER "applications")
   set_target_properties(opencv_haartraining_engine PROPERTIES FOLDER "applications")
+  set_target_properties(opencv_mergevec PROPERTIES FOLDER "applications")
+  set_target_properties(opencv_vec2img PROPERTIES FOLDER "applications")
 endif()
