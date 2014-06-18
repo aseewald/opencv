@@ -53,6 +53,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <windowsx.h>
 
 #ifdef HAVE_OPENGL
 #include <memory>

@@ -49,7 +49,7 @@ using namespace cvtest;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // HoughLines
 
-PARAM_TEST_CASE(HoughLines, cv::cuda::DeviceInfo, cv::Size, UseRoi)
+PARAM_TEST_CASE(HoughLines, cv::gpu::DeviceInfo, cv::Size, UseRoi)
 {
     static void generateLines(cv::Mat& img)
     {
@@ -80,10 +80,10 @@ PARAM_TEST_CASE(HoughLines, cv::cuda::DeviceInfo, cv::Size, UseRoi)
     }
 };
 
-CUDA_TEST_P(HoughLines, Accuracy)
+GPU_TEST_P(HoughLines, Accuracy)
 {
-    const cv::cuda::DeviceInfo devInfo = GET_PARAM(0);
-    cv::cuda::setDevice(devInfo.deviceID());
+    const cv::gpu::DeviceInfo devInfo = GET_PARAM(0);
+    cv::gpu::setDevice(devInfo.deviceID());
     const cv::Size size = GET_PARAM(1);
     const bool useRoi = GET_PARAM(2);
 
@@ -94,13 +94,11 @@ CUDA_TEST_P(HoughLines, Accuracy)
     cv::Mat src(size, CV_8UC1);
     generateLines(src);
 
-    cv::Ptr<cv::cuda::HoughLinesDetector> hough = cv::cuda::createHoughLinesDetector(rho, theta, threshold);
-
-    cv::cuda::GpuMat d_lines;
-    hough->detect(loadMat(src, useRoi), d_lines);
+    cv::gpu::GpuMat d_lines;
+    cv::gpu::HoughLines(loadMat(src, useRoi), d_lines, rho, theta, threshold);
 
     std::vector<cv::Vec2f> lines;
-    hough->downloadResults(d_lines, lines);
+    cv::gpu::HoughLinesDownload(d_lines, lines);
 
     cv::Mat dst(size, CV_8UC1);
     drawLines(dst, lines);
@@ -108,7 +106,7 @@ CUDA_TEST_P(HoughLines, Accuracy)
     ASSERT_MAT_NEAR(src, dst, 0.0);
 }
 
-INSTANTIATE_TEST_CASE_P(CUDA_ImgProc, HoughLines, testing::Combine(
+INSTANTIATE_TEST_CASE_P(GPU_ImgProc, HoughLines, testing::Combine(
     ALL_DEVICES,
     DIFFERENT_SIZES,
     WHOLE_SUBMAT));
@@ -116,7 +114,7 @@ INSTANTIATE_TEST_CASE_P(CUDA_ImgProc, HoughLines, testing::Combine(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // HoughCircles
 
-PARAM_TEST_CASE(HoughCircles, cv::cuda::DeviceInfo, cv::Size, UseRoi)
+PARAM_TEST_CASE(HoughCircles, cv::gpu::DeviceInfo, cv::Size, UseRoi)
 {
     static void drawCircles(cv::Mat& dst, const std::vector<cv::Vec3f>& circles, bool fill)
     {
@@ -127,10 +125,10 @@ PARAM_TEST_CASE(HoughCircles, cv::cuda::DeviceInfo, cv::Size, UseRoi)
     }
 };
 
-CUDA_TEST_P(HoughCircles, Accuracy)
+GPU_TEST_P(HoughCircles, Accuracy)
 {
-    const cv::cuda::DeviceInfo devInfo = GET_PARAM(0);
-    cv::cuda::setDevice(devInfo.deviceID());
+    const cv::gpu::DeviceInfo devInfo = GET_PARAM(0);
+    cv::gpu::setDevice(devInfo.deviceID());
     const cv::Size size = GET_PARAM(1);
     const bool useRoi = GET_PARAM(2);
 
@@ -150,13 +148,11 @@ CUDA_TEST_P(HoughCircles, Accuracy)
     cv::Mat src(size, CV_8UC1);
     drawCircles(src, circles_gold, true);
 
-    cv::Ptr<cv::cuda::HoughCirclesDetector> houghCircles = cv::cuda::createHoughCirclesDetector(dp, minDist, cannyThreshold, votesThreshold, minRadius, maxRadius);
-
-    cv::cuda::GpuMat d_circles;
-    houghCircles->detect(loadMat(src, useRoi), d_circles);
+    cv::gpu::GpuMat d_circles;
+    cv::gpu::HoughCircles(loadMat(src, useRoi), d_circles, CV_HOUGH_GRADIENT, dp, minDist, cannyThreshold, votesThreshold, minRadius, maxRadius);
 
     std::vector<cv::Vec3f> circles;
-    d_circles.download(circles);
+    cv::gpu::HoughCirclesDownload(d_circles, circles);
 
     ASSERT_FALSE(circles.empty());
 
@@ -181,7 +177,7 @@ CUDA_TEST_P(HoughCircles, Accuracy)
     }
 }
 
-INSTANTIATE_TEST_CASE_P(CUDA_ImgProc, HoughCircles, testing::Combine(
+INSTANTIATE_TEST_CASE_P(GPU_ImgProc, HoughCircles, testing::Combine(
     ALL_DEVICES,
     DIFFERENT_SIZES,
     WHOLE_SUBMAT));
@@ -189,14 +185,16 @@ INSTANTIATE_TEST_CASE_P(CUDA_ImgProc, HoughCircles, testing::Combine(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // GeneralizedHough
 
-PARAM_TEST_CASE(GeneralizedHough, cv::cuda::DeviceInfo, UseRoi)
+#if !defined(__GNUC__) || (__GNUC__ * 10 + __GNUC_MINOR__ != 47)
+
+PARAM_TEST_CASE(GeneralizedHough, cv::gpu::DeviceInfo, UseRoi)
 {
 };
 
-CUDA_TEST_P(GeneralizedHough, Ballard)
+GPU_TEST_P(GeneralizedHough, POSITION)
 {
-    const cv::cuda::DeviceInfo devInfo = GET_PARAM(0);
-    cv::cuda::setDevice(devInfo.deviceID());
+    const cv::gpu::DeviceInfo devInfo = GET_PARAM(0);
+    cv::gpu::setDevice(devInfo.deviceID());
     const bool useRoi = GET_PARAM(1);
 
     cv::Mat templ = readImage("../cv/shared/templ.png", cv::IMREAD_GRAYSCALE);
@@ -218,16 +216,16 @@ CUDA_TEST_P(GeneralizedHough, Ballard)
         templ.copyTo(imageROI);
     }
 
-    cv::Ptr<cv::GeneralizedHoughBallard> alg = cv::cuda::createGeneralizedHoughBallard();
-    alg->setVotesThreshold(200);
+    cv::Ptr<cv::gpu::GeneralizedHough_GPU> hough = cv::gpu::GeneralizedHough_GPU::create(cv::GHT_POSITION);
+    hough->set("votesThreshold", 200);
 
-    alg->setTemplate(loadMat(templ, useRoi));
+    hough->setTemplate(loadMat(templ, useRoi));
 
-    cv::cuda::GpuMat d_pos;
-    alg->detect(loadMat(image, useRoi), d_pos);
+    cv::gpu::GpuMat d_pos;
+    hough->detect(loadMat(image, useRoi), d_pos);
 
     std::vector<cv::Vec4f> pos;
-    d_pos.download(pos);
+    hough->download(d_pos, pos);
 
     ASSERT_EQ(gold_count, pos.size());
 
@@ -252,8 +250,10 @@ CUDA_TEST_P(GeneralizedHough, Ballard)
     }
 }
 
-INSTANTIATE_TEST_CASE_P(CUDA_ImgProc, GeneralizedHough, testing::Combine(
+INSTANTIATE_TEST_CASE_P(GPU_ImgProc, GeneralizedHough, testing::Combine(
     ALL_DEVICES,
     WHOLE_SUBMAT));
+
+#endif
 
 #endif // HAVE_CUDA
